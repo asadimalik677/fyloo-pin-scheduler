@@ -10,24 +10,24 @@ export default function PricingTable() {
     {
       id: "starter",
       name: "Starter",
-      audience: "Ideal for emerging makers and solo shop owners getting started on Pinterest.",
+      audience: "Ideal for emerging creators and single-catalog shops getting started on Pinterest.",
       priceMonthly: "$12",
       priceYearly: "$10",
       isPopular: false,
-      ctaText: "Choose Starter",
+      ctaText: "Start with Starter",
       features: [
         "60 pins scheduled per month",
         "Up to 5 synced Pinterest boards",
-        "Composer with live pin preview",
+        "Composer with real-time preview",
         "Visual queue grouped by day",
-        "Daily automated cron publishing",
+        "Daily automated background publishing",
         "Community & setup guides",
       ],
     },
     {
       id: "pro",
       name: "Pro",
-      audience: "Crafted for active creators & boutique brands posting daily content.",
+      audience: "Built for active brands & creators publishing daily content across multiple boards.",
       priceMonthly: "$24",
       priceYearly: "$19",
       isPopular: true,
@@ -35,29 +35,29 @@ export default function PricingTable() {
       features: [
         "Unlimited pins scheduled per month",
         "Unlimited Pinterest boards",
-        "Bulk upload & multi-pin scheduler",
+        "Bulk image upload & batch queueing",
         "Interactive calendar & timeline views",
         "Custom daily posting time slots",
-        "Hands-free auto-publishing",
+        "Hands-free cloud background dispatch",
         "Drafts workshop & published history",
-        "Priority creator support",
+        "Priority creator email support",
       ],
     },
     {
       id: "business",
       name: "Business",
-      audience: "Designed for high-volume catalogs, multiple collections & seasonal launches.",
+      audience: "Designed for high-volume catalogs, seasonal product drops & agency teams.",
       priceMonthly: "$48",
       priceYearly: "$39",
       isPopular: false,
-      ctaText: "Select Business",
+      ctaText: "Choose Business",
       features: [
         "Everything in Pro included",
         "Rapid batch processing & media prep",
         "Cross-board seasonal pin replication",
-        "Real-time auto-publish health monitor",
+        "Real-time dispatch health monitor",
         "Extended durable queue storage",
-        "Dedicated maker concierge support",
+        "Dedicated creator concierge support",
       ],
     },
   ];
@@ -78,7 +78,7 @@ export default function PricingTable() {
           className={`pricing-toggle-btn ${billingCycle === "yearly" ? "active" : ""}`}
           onClick={() => setBillingCycle("yearly")}
         >
-          Yearly Billing <span style={{ fontSize: "0.75rem", background: "#EEF5F0", color: "#245735", padding: "2px 6px", borderRadius: 9999, marginLeft: 4 }}>Save 20%</span>
+          Yearly Billing <span style={{ fontSize: "0.75rem", background: "#DCFCE7", color: "#15803D", padding: "2px 8px", borderRadius: 9999, marginLeft: 6, fontWeight: 700 }}>Save 20%</span>
         </button>
       </div>
 
@@ -117,9 +117,9 @@ export default function PricingTable() {
               </ul>
 
               <Link
-                href="/login"
+                href="/signup"
                 className={plan.isPopular ? "craft-btn-primary" : "craft-btn-outline"}
-                style={{ textAlign: "center", width: "100%", padding: "12px 20px" }}
+                style={{ textAlign: "center", width: "100%", padding: "10px 18px" }}
               >
                 {plan.ctaText}
               </Link>

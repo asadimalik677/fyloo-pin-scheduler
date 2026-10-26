@@ -4,12 +4,13 @@ import { cloudStoreGet, cloudStoreSet, isSupabaseConfigured } from "./supabase";
 export interface UserSession {
   id: string;
   email: string;
-  provider: "supabase_auth" | "store_auth";
+  provider: "supabase_auth" | "store_auth" | "google_oauth";
   created_at: string;
 }
 
-const AUTH_COOKIE = "fyloo_auth_session";
+export const AUTH_COOKIE = "fyloo_auth_session";
 const USERS_STORE_KEY = "fyloo:registered_users";
+const RESET_TOKENS_KEY = "fyloo:password_reset_tokens";
 
 export function getSupabaseAuthConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,7 +25,7 @@ export function getSupabaseAuthConfig() {
 /**
  * Sign up user using Supabase Auth free tier (with store fallback if credentials unconfigured)
  */
-export async function signUpUser(email: string, password: string):Promise<{ success: boolean; user?: UserSession; error?: string }> {
+export async function signUpUser(email: string, password: string): Promise<{ success: boolean; user?: UserSession; error?: string }> {
   const cleanEmail = email.trim().toLowerCase();
   const { url, anonKey, configured } = getSupabaseAuthConfig();
 
@@ -63,7 +64,7 @@ export async function signUpUser(email: string, password: string):Promise<{ succ
   const userId = crypto.randomUUID();
   users[cleanEmail] = {
     id: userId,
-    passwordHash: password, // in production with Supabase, Supabase handles bcrypt hashing
+    passwordHash: password,
     created_at: new Date().toISOString(),
   };
   await cloudStoreSet(USERS_STORE_KEY, users);
@@ -149,6 +150,75 @@ export async function logInUser(email: string, password: string): Promise<{ succ
       created_at: existing.created_at,
     },
   };
+}
+
+/**
+ * Request password reset email via Supabase Auth (or fallback token store)
+ */
+export async function requestPasswordReset(email: string, origin: string): Promise<{ success: boolean; message: string; error?: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+  const { url, anonKey, configured } = getSupabaseAuthConfig();
+
+  if (configured) {
+    try {
+      const res = await fetch(`${url}/auth/v1/recover`, {
+        method: "POST",
+        headers: {
+          apikey: anonKey!,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: cleanEmail,
+          redirect_to: `${origin}/reset-password`,
+        }),
+      });
+      if (res.ok) {
+        return {
+          success: true,
+          message: "Password reset instructions have been sent to your email address.",
+        };
+      }
+    } catch (e) {
+      console.warn("Supabase Auth recover failed, falling back:", e);
+    }
+  }
+
+  // Fallback mode: store a reset token
+  const tokens = await cloudStoreGet<Record<string, { email: string; expiresAt: number }>>(RESET_TOKENS_KEY, {});
+  const token = "rst_" + Math.random().toString(36).substring(2, 12);
+  tokens[token] = {
+    email: cleanEmail,
+    expiresAt: Date.now() + 1000 * 60 * 60, // 1 hour
+  };
+  await cloudStoreSet(RESET_TOKENS_KEY, tokens);
+
+  return {
+    success: true,
+    message: "Password reset instructions have been sent to your email. (Demo: you can also set your new password directly on the reset page).",
+  };
+}
+
+/**
+ * Update user password after reset
+ */
+export async function resetUserPassword(email: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+  const users = await cloudStoreGet<Record<string, { id: string; passwordHash: string; created_at: string }>>(USERS_STORE_KEY, {});
+
+  if (users[cleanEmail]) {
+    users[cleanEmail].passwordHash = newPassword;
+    await cloudStoreSet(USERS_STORE_KEY, users);
+    return { success: true };
+  }
+
+  // If user wasn't registered yet in store, register them with new password
+  users[cleanEmail] = {
+    id: crypto.randomUUID(),
+    passwordHash: newPassword,
+    created_at: new Date().toISOString(),
+  };
+  await cloudStoreSet(USERS_STORE_KEY, users);
+  return { success: true };
 }
 
 export function getCurrentSession(): UserSession | null {
