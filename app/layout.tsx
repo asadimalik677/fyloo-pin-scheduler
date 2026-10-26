@@ -2,8 +2,8 @@ import "./globals.css";
 import type { ReactNode } from "react";
 
 export const metadata = {
-  title: "Fyloo Pin Scheduler — Artisanal Pinterest Automation",
-  description: "Handcrafted pin publishing and scheduling on autopilot for maker and artisan shops.",
+  title: "Fyloo Pin Scheduler — Modern Pinterest Automation SaaS",
+  description: "Automate pin publishing, bulk scheduling, keyword research, and analytics on autopilot.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -21,6 +21,7 @@ export default function PublicHeader() {
         <nav className="public-desktop-nav">
           <Link href="/#features" className="public-nav-link">Features</Link>
           <Link href="/#how-it-works" className="public-nav-link">How It Works</Link>
+          <Link href="/#demo-preview" className="public-nav-link">Analytics</Link>
           <Link href="/pricing" className="public-nav-link">Pricing</Link>
           <Link href="/dashboard" className="public-nav-link">Dashboard</Link>
         </nav>
@@ -49,6 +50,7 @@ export default function PublicHeader() {
         <div className="public-mobile-drawer">
           <Link href="/#features" onClick={() => setMobileNav(false)}>Features</Link>
           <Link href="/#how-it-works" onClick={() => setMobileNav(false)}>How It Works</Link>
+          <Link href="/#demo-preview" onClick={() => setMobileNav(false)}>Analytics</Link>
           <Link href="/pricing" onClick={() => setMobileNav(false)}>Pricing</Link>
           <Link href="/dashboard" onClick={() => setMobileNav(false)}>Dashboard</Link>
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
@@ -56,7 +58,7 @@ export default function PublicHeader() {
               Log In
             </Link>
             <Link href="/signup" onClick={() => setMobileNav(false)} className="craft-btn-primary" style={{ flex: 1, textAlign: "center" }}>
-              Sign Up
+              Sign Up Free
             </Link>
           </div>
         </div>
