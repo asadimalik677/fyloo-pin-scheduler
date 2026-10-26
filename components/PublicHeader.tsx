@@ -27,11 +27,11 @@ export default function PublicHeader() {
 
         {/* CTA Actions */}
         <div className="public-header-ctas">
-          <Link href="/login" className="craft-btn-outline">
-            Connect
+          <Link href="/login" className="craft-btn-outline craft-btn-sm">
+            Log In
           </Link>
-          <Link href="/dashboard" className="craft-btn-primary">
-            Open App
+          <Link href="/signup" className="craft-btn-primary craft-btn-sm">
+            Sign Up Free
           </Link>
           <button
             type="button"
@@ -51,9 +51,14 @@ export default function PublicHeader() {
           <Link href="/#how-it-works" onClick={() => setMobileNav(false)}>How It Works</Link>
           <Link href="/pricing" onClick={() => setMobileNav(false)}>Pricing</Link>
           <Link href="/dashboard" onClick={() => setMobileNav(false)}>Dashboard</Link>
-          <Link href="/login" onClick={() => setMobileNav(false)} className="craft-btn-primary" style={{ textAlign: "center", marginTop: 8 }}>
-            Continue with Pinterest
-          </Link>
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <Link href="/login" onClick={() => setMobileNav(false)} className="craft-btn-outline" style={{ flex: 1, textAlign: "center" }}>
+              Log In
+            </Link>
+            <Link href="/signup" onClick={() => setMobileNav(false)} className="craft-btn-primary" style={{ flex: 1, textAlign: "center" }}>
+              Sign Up
+            </Link>
+          </div>
         </div>
       )}
     </header>

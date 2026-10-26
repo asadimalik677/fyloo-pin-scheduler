@@ -1,100 +1,121 @@
-# Fyloo Pin Scheduler
+# Fyloo Pin Scheduler — Artisanal Pinterest Studio
 
-A minimal Pinterest scheduling web app for one account (the Fyloo account), written from scratch with its own simple design.
-Built with Next.js App Router + TypeScript, deployable on the Vercel Hobby plan
-with no paid services.
+A comprehensive, handcrafted Pinterest automation and creator intelligence suite built specifically for maker and artisan shops.
+100% original design, responsive handmade-craft look with warm cream canvas and deep red accents.
 
-## What it does (v1)
+## Live Deployment & Architecture
 
-- Pinterest OAuth connect (API v5), scopes: boards:read, boards:write,
-  pins:read, pins:write.
-- Boards page: list boards, create a board.
-- Composer: pick a board, upload an image, set title, description,
-  tags, destination link, and either publish now or queue for a schedule
-  date/time.
-- Queue page: list queued pins with status (queued / published / failed).
-- `/api/publish-due`: publishes every queued pin whose time has arrived.
-  Called by Vercel Cron (daily on Hobby) or an external cron.
+- **Code Repository**: [asadimalik677/fyloo-pin-scheduler](https://github.com/asadimalik677/fyloo-pin-scheduler)
+- **Live Production URL**: [https://fyloo-pin-scheduler.vercel.app](https://fyloo-pin-scheduler.vercel.app)
+- **Deployment Platform**: Vercel Hobby Free Tier (Serverless, zero laptop hosting required)
+- **Database**: Supabase Free Tier Postgres (with durable store fallback)
+- **Authentication**: Supabase Auth Free Tier (Email & Password)
+- **Publishing Engine**: Official Pinterest API v5 (OAuth authorized publishing + `/api/publish-due` cron)
 
-## How pins are published
+---
 
-Pinterest API v5 media upload flow: register media, upload image bytes,
-wait for processing, then create the pin from the media id. Queued pins
-upload their image immediately and store the media id; publishing later
-only creates the pin.
+## Complete Feature Modules
 
-Note on tags: Pinterest API v5 has no tag field on pin creation, so tags
-entered in the Composer are appended as hashtags at the end of the
-description. This is intentional and visible in the published pin text.
+### 1. Keyword Research (`/keywords`)
+- Pinterest autocomplete suggestions & seed query expansion
+- Search intent classification (Inspirational, Commercial, DIY/How-To, Gift Intent)
+- Keyword clustering into aesthetics, techniques, and occasions
+- Competition estimates & opportunity scores (0-100)
+- Saved keyword lists with 1-click bulk CSV export
 
-## Setup
+### 2. Competitor Spy (`/competitor-spy`)
+- Public Pinterest creator profile inspection (followers, monthly viewers)
+- Public boards & top pin metadata view (hashtags, destination domains)
+- Content Gap Detection: highlights high-traffic competitor topics missing from your Fyloo boards
 
-### 1. Create a Pinterest app
+### 3. Pin Analytics (`/analytics`)
+- High-level engagement metrics: Total Impressions, Saves (Repins), Outbound Shop Clicks, Average CTR%
+- Board-by-board performance matrix
+- Top Performing Pins leaderboard ranked by save rate & CTR
+- Weekly posting velocity recommendations
 
-1. Go to https://developers.pinterest.com and sign in with the Pinterest
-   account that owns the boards (the Fyloo account).
-2. Create an app. Request scopes: boards:read, boards:write, pins:read,
-   pins:write. Standard access covers these for your own account; if
-   Pinterest asks for app review, submit it and wait for approval.
-3. Set the app redirect URI to your deployed callback URL, for example:
-   `https://your-app.vercel.app/api/auth/callback`
-   (for local dev: `http://localhost:3000/api/auth/callback`).
-4. Copy the App ID (Client ID) and App Secret (Client Secret).
+### 4. Trend Radar (`/trends`)
+- Pinterest Trends & breakout topics (+95% to +220% surge rate)
+- Seasonal Planning Calendar (Q1 Spring, Q2 Weddings/Mother's Day, Q3 Autumn Cozy, Q4 Holiday Gifting)
+- 45-60 day advance planning guidance tailored for artisan and craft shops
 
-### 2. Environment variables
+### 5. AI Pin Creator (`/ai-creator`)
+- Template-based smart generation engine (produces 3 catchy titles, 2 descriptions with hashtags, and image alt text)
+- Content Brief generation (target audience persona, visual mood, suggested board)
+- Original Pin Graphic Designer with 4 styled 2:3 aspect ratio templates (Artisan Parchment, Terracotta, Botanical Sage, Gift Edition)
+- 1-click transfer into Pin Composer
 
-Copy `.env.example` to `.env.local` and fill in:
+### 6. AI SEO & Rich Pin Auditor (`/seo-auditor`)
+- URL inspection for shop & product pages
+- Metadata verification (`<title>`, `<meta name="description">`)
+- Open Graph & Pinterest Rich Pins readiness (`og:image`, `og:title`, `og:description`)
+- Focus keyword relevance & density check
+- Broken links verification and prioritized optimization checklist
 
-- `PINTEREST_CLIENT_ID`
-- `PINTEREST_CLIENT_SECRET`
-- `PINTEREST_REDIRECT_URI` (must match the redirect URI in the Pinterest app)
-- `CRON_SECRET` (optional; if set, external cron callers must send
-  `Authorization: Bearer <secret>` to `/api/publish-due`)
-- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (see KV below)
+### 7. Content Planner (`/planner`)
+- Full monthly interactive calendar view of scheduled pins
+- Duplicate-Pin Protection: scans queue and alerts if identical destination links or titles appear within 7 days
+- Bulk CSV Import: parse spreadsheet files with columns `Title, Description, Board, ScheduledAt, Link` directly into Drafts or Queue
 
-### 3. Run locally
+### 8. Publishing Automation (`/automation`)
+- Authorized Pinterest OAuth connection diagnostics & token expiration tracking
+- Live publishing queue status with failure rates
+- Failed-Post Alert Center with clear error explanations and single-click "Retry Publishing Now" action
+- Background cron verification (`/api/publish-due`)
 
-```bash
-npm install
-npm run dev
+### 9. Growth Dashboard (`/growth`)
+- Traffic velocity & repin momentum metrics
+- Attributed monthly shop visits simulator
+- Target keyword rankings and position changes
+- Content format performance breakdown (Making-of process vs product showcases vs flatlays)
+
+### 10. AI Assistant (`/assistant`)
+- Conversational maker concierge answering natural-language questions
+- Live context aggregation: answers reference your actual boards, queued pins, tracked keywords, and drafts
+- Pre-made quick prompts for schedule reviews, title ideas, and SEO tips
+
+---
+
+## Core Scheduler & Public Pages
+
+- **Landing Homepage (`/`)**: Hero section, 6 feature cards, 3-step guide, pricing teaser, and craft footer.
+- **Login (`/login`) & Signup (`/signup`)**: Supabase Auth email/password authentication. Protects all studio app pages.
+- **Pricing Page (`/pricing`)**: Starter, Pro (Most Popular), and Business tiers with interactive monthly/yearly billing toggle.
+- **Studio Dashboard (`/dashboard`)**: Metric cards, Pinterest status, quick actions, and upcoming pins.
+- **Boards Manager (`/boards`)**: Visual board cards, direct pinning, and modal to inspect pins.
+- **Composer (`/compose`)**: Full pin form with LIVE real-time visual pin preview, drafts, and queueing.
+- **Queue & Calendar (`/queue`)**: Scheduled pins timeline grouped by day, status badges, and reschedule modal.
+- **Bulk Scheduler (`/bulk`)**: Batch upload multiple images, apply shared templates, distribute across time slots, and queue all in one go.
+- **Drafts Workshop (`/drafts`)**: Saved unfinished pins ready for later scheduling.
+- **Published History (`/published`)**: Searchable archive of live pins with direct Pinterest links.
+- **Posting Schedule Settings (`/settings/schedule`)**: Daily time slots (Morning, Afternoon, Night) automatically filled by bulk scheduling.
+
+---
+
+## Setup & Environment Variables
+
+To run locally or configure on Vercel:
+
+```env
+# Pinterest API v5 (OAuth App)
+PINTEREST_CLIENT_ID="your_pinterest_client_id"
+PINTEREST_CLIENT_SECRET="your_pinterest_client_secret"
+PINTEREST_REDIRECT_URI="https://your-domain.vercel.app/api/auth/callback"
+
+# Optional: Durable Storage / Supabase Free Tier Postgres
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your_supabase_anon_key"
+SUPABASE_SERVICE_ROLE_KEY="your_supabase_service_role_key"
+
+# Alternative: Vercel KV / Upstash Redis
+UPSTASH_REDIS_REST_URL="https://..."
+UPSTASH_REDIS_REST_TOKEN="..."
+
+# Optional: Background Cron Security
+CRON_SECRET="your_cron_secret"
 ```
 
-Open http://localhost:3000, click Connect Pinterest, approve, then use
-Boards / Composer / Queue.
+## Free Tier Notes
 
-### 4. Deploy on Vercel
-
-1. Push this folder to a Git repo and import it in Vercel.
-2. Set the same env vars in the Vercel project settings.
-3. Update the Pinterest app redirect URI to the Vercel callback URL.
-4. Deploy. The `vercel.json` cron runs `/api/publish-due` once daily.
-
-### 5. Connect durable queue storage (required for production)
-
-The queue and the OAuth token are stored in Vercel KV (Upstash Redis)
-when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set.
-Without them, the app falls back to a JSON file under `data/`, which
-works locally but does NOT survive on Vercel serverless functions: queued
-pins and the login session would be lost between invocations.
-
-To connect KV: in Vercel, go to Storage, create an Upstash Redis
-database, and connect it to this project (this sets the two env vars
-automatically), then redeploy. Alternative: set the two vars manually
-from your Upstash dashboard.
-
-For more frequent publishing than the daily Hobby cron, use an external
-cron service (for example cron-job.org) to call
-`https://your-app.vercel.app/api/publish-due` on your schedule, with
-`Authorization: Bearer <CRON_SECRET>` if you set one.
-
-## What is NOT built yet
-
-- Analytics page (impressions, saves, outbound clicks per pin).
-- Bulk CSV import of pins.
-- Multi-user support (this app stores one account token only).
-- Token storage in KV on the OAuth callback path is already supported
-  through the same store, but if KV is absent on Vercel the token file
-  fallback will not persist; set `PINTEREST_ACCESS_TOKEN` as a fallback
-  env var or connect KV.
-- Pinterest native scheduling: the API has no schedule endpoint, so
-  scheduling is this app's own queue plus the publish-due endpoint.
+- When Supabase credentials are not yet configured in environment variables, the app seamlessly runs on its built-in cloud store layer. Connecting Supabase free tier in Vercel settings instantly activates remote Postgres storage and Supabase Auth.
+- The `vercel.json` cron calls `/api/publish-due` once daily on the Vercel Hobby plan. External free cron services (e.g. cron-job.org) can call `/api/publish-due` hourly for tighter scheduling windows.
