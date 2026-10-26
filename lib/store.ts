@@ -8,8 +8,10 @@ const KV_URL = process.env.UPSTASH_REDIS_REST_URL;
 const KV_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 function dataFile(key: string): string {
-  const dir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  // On Vercel serverless the filesystem is read-only except /tmp, and
+  // creating directories during a read throws a server-side exception.
+  // Never mkdir on read paths; writes handle their own fallback.
+  const dir = process.env.VERCEL ? "/tmp/fyloo-pin-scheduler-data" : path.join(process.cwd(), "data");
   return path.join(dir, key.replace(/[^a-z0-9_-]/gi, "_") + ".json");
 }
 
@@ -40,7 +42,13 @@ export async function storeGet(key: string): Promise<string | null> {
 
 export async function storeSet(key: string, value: string): Promise<void> {
   if (KV_URL && KV_TOKEN) return kvSet(key, value);
-  fs.writeFileSync(dataFile(key), value, "utf8");
+  const file = dataFile(key);
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+  } catch {
+    // Read-only filesystem (Vercel without KV): local writes are best-effort.
+  }
+  fs.writeFileSync(file, value, "utf8");
 }
 
 export function kvConfigured(): boolean {
