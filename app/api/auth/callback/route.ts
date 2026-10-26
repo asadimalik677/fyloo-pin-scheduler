@@ -40,9 +40,9 @@ export async function GET(req: Request) {
     refresh_token: json.refresh_token,
     expires_at: json.expires_in ? Date.now() + json.expires_in * 1000 : undefined,
   });
-  const home = new URL("/", req.url);
-  home.searchParams.set("connected", "1");
-  const out = NextResponse.redirect(home);
+  const dashboard = new URL("/dashboard", req.url);
+  dashboard.searchParams.set("connected", "1");
+  const out = NextResponse.redirect(dashboard);
   out.cookies.set("fyloo_oauth_state", "", { path: "/", maxAge: 0 });
   return out;
 }

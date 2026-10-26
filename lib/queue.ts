@@ -14,6 +14,7 @@ export interface QueueItem {
   error?: string;
   pin_id?: string;
   created_at: string;
+  image_url?: string;
 }
 
 const KEY = "fyloo:queue";
@@ -39,6 +40,37 @@ export async function addQueueItem(item: QueueItem): Promise<QueueItem> {
   return item;
 }
 
+export async function deleteQueueItem(id: string): Promise<boolean> {
+  const items = await listQueue();
+  const initialLength = items.length;
+  const filtered = items.filter((item) => item.id !== id);
+  if (filtered.length !== initialLength) {
+    await saveQueue(filtered);
+    return true;
+  }
+  return false;
+}
+
+export async function updateQueueItem(
+  id: string,
+  updates: Partial<Omit<QueueItem, "id" | "media_id" | "created_at">>
+): Promise<QueueItem | null> {
+  const items = await listQueue();
+  const idx = items.findIndex((item) => item.id === id);
+  if (idx === -1) return null;
+  items[idx] = { ...items[idx], ...updates };
+  await saveQueue(items);
+  return items[idx];
+}
+
+export async function bulkAddQueueItems(newItems: QueueItem[]): Promise<QueueItem[]> {
+  const items = await listQueue();
+  items.push(...newItems);
+  await saveQueue(items);
+  return newItems;
+}
+
 export function queueDurable(): boolean {
   return kvConfigured();
 }
+

@@ -189,3 +189,14 @@ export function withTags(description: string, tags: string[]): string {
   const hashes = clean.map((t) => `#${t.replace(/^#/, "").replace(/\s+/g, "")}`).join(" ");
   return description ? `${description} ${hashes}` : hashes;
 }
+
+export async function listBoardPins(boardId: string): Promise<any[]> {
+  try {
+    const json = await api(`/boards/${boardId}/pins?page_size=50`);
+    return json.items ?? [];
+  } catch (e) {
+    console.warn(`Failed to list pins for board ${boardId}:`, e);
+    return [];
+  }
+}
+
