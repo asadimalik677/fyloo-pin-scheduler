@@ -207,3 +207,24 @@ export async function generatePinImageWithGemini(
   }
   throw new Error(lastError || "Gemini image generation failed.");
 }
+
+// ---- Free Pollinations fallback (no API key) ----
+// Used only when Gemini image generation fails.
+export async function generatePinImageWithPollinations(
+  prompt: string
+): Promise<PinImageResult> {
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=1152&model=flux&nologo=true`;
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch {
+    throw new Error("Pollinations image generation failed: could not reach Pollinations.");
+  }
+  const contentType = (res.headers.get("content-type") || "").split(";")[0];
+  if (!res.ok || !contentType.startsWith("image/")) {
+    throw new Error(`Pollinations image generation failed (status ${res.status}).`);
+  }
+  const buffer = Buffer.from(await res.arrayBuffer());
+  if (!buffer.length) throw new Error("Pollinations returned no image.");
+  return { imageDataUrl: `data:${contentType};base64,${buffer.toString("base64")}`, model: "pollinations-flux" };
+}

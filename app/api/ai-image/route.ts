@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   generatePinImageWithGemini,
+  generatePinImageWithPollinations,
   resolveGeminiKey,
   NO_KEY_ERROR,
 } from "../../../lib/ai";
@@ -19,8 +20,17 @@ export async function POST(req: Request) {
     if (!apiKey) {
       return NextResponse.json({ error: NO_KEY_ERROR }, { status: 400 });
     }
-    const result = await generatePinImageWithGemini(prompt, apiKey);
-    return NextResponse.json(result);
+    try {
+      const result = await generatePinImageWithGemini(prompt, apiKey);
+      return NextResponse.json(result);
+    } catch (geminiError) {
+      try {
+        const fallback = await generatePinImageWithPollinations(prompt);
+        return NextResponse.json(fallback);
+      } catch {
+        throw geminiError;
+      }
+    }
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Image generation failed" },
