@@ -203,7 +203,7 @@ export async function generatePinImageWithGemini(
       return { imageDataUrl: `data:${mime};base64,${part.inlineData.data}`, model };
     }
     lastError = imageErrorMessage(res.status);
-    if (res.status !== 402 && res.status !== 403 && res.status !== 404) break;
+    if (res.status !== 402 && res.status !== 403 && res.status !== 404 && res.status !== 429) break;
   }
   throw new Error(lastError || "Gemini image generation failed.");
 }
