@@ -20,8 +20,25 @@ export async function GET() {
 // The image is uploaded to Pinterest immediately and its media_id is stored;
 // the pin itself is created later by /api/publish-due.
 export async function POST(req: Request) {
+  const contentType = req.headers.get("content-type") || "";
+  if (!contentType.includes("multipart/form-data")) {
+    return NextResponse.json(
+      { error: "Unsupported Media Type. This endpoint requires multipart/form-data with an image file." },
+      { status: 415 }
+    );
+  }
+
   try {
-    const form = await req.formData();
+    let form: FormData;
+    try {
+      form = await req.formData();
+    } catch {
+      return NextResponse.json(
+        { error: "Failed to parse multipart form data." },
+        { status: 400 }
+      );
+    }
+
     const file = form.get("image") as File | null;
     const boardId = form.get("board_id") as string | null;
     const boardName = (form.get("board_name") as string | null) ?? undefined;
@@ -115,4 +132,3 @@ export async function PATCH(req: Request) {
     );
   }
 }
-

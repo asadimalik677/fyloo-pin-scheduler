@@ -1,4 +1,5 @@
-import { storeGet, storeSet, kvConfigured } from "./store";
+import { cloudStoreGet, cloudStoreSet, isSupabaseConfigured } from "./supabase";
+import { kvConfigured } from "./store";
 
 export interface QueueItem {
   id: string;
@@ -20,17 +21,11 @@ export interface QueueItem {
 const KEY = "fyloo:queue";
 
 export async function listQueue(): Promise<QueueItem[]> {
-  const raw = await storeGet(KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw) as QueueItem[];
-  } catch {
-    return [];
-  }
+  return cloudStoreGet<QueueItem[]>(KEY, []);
 }
 
 export async function saveQueue(items: QueueItem[]): Promise<void> {
-  await storeSet(KEY, JSON.stringify(items));
+  await cloudStoreSet(KEY, items);
 }
 
 export async function addQueueItem(item: QueueItem): Promise<QueueItem> {
@@ -71,6 +66,5 @@ export async function bulkAddQueueItems(newItems: QueueItem[]): Promise<QueueIte
 }
 
 export function queueDurable(): boolean {
-  return kvConfigured();
+  return isSupabaseConfigured() || kvConfigured();
 }
-

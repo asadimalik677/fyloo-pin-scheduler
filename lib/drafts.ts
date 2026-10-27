@@ -1,4 +1,4 @@
-import { storeGet, storeSet } from "./store";
+import { cloudStoreGet, cloudStoreSet } from "./supabase";
 
 export interface DraftItem {
   id: string;
@@ -17,17 +17,11 @@ export interface DraftItem {
 const KEY = "fyloo:drafts";
 
 export async function listDrafts(): Promise<DraftItem[]> {
-  const raw = await storeGet(KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw) as DraftItem[];
-  } catch {
-    return [];
-  }
+  return cloudStoreGet<DraftItem[]>(KEY, []);
 }
 
 export async function saveDrafts(items: DraftItem[]): Promise<void> {
-  await storeSet(KEY, JSON.stringify(items));
+  await cloudStoreSet(KEY, items);
 }
 
 export async function saveDraft(item: DraftItem): Promise<DraftItem> {

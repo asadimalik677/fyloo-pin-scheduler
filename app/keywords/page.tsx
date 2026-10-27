@@ -1,17 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
-
-interface KeywordSuggestion {
-  keyword: string;
-  cluster: string;
-  competition: "Low" | "Medium" | "High";
-  score: number;
-  intent: string;
-  suggestedBoard: string;
-}
+import { RealKeywordItem, KeywordSearchResults } from "../../lib/keyword-sources";
 
 interface SavedKeywordList {
   id: string;
@@ -21,10 +13,20 @@ interface SavedKeywordList {
 
 export default function KeywordResearchPage() {
   const [query, setQuery] = useState("ceramic mug");
-  const [results, setResults] = useState<KeywordSuggestion[]>([]);
-  const [clusters, setClusters] = useState<{ [cluster: string]: KeywordSuggestion[] }>({});
+  const [pinKey, setPinKey] = useState("");
+  const [showPinKeyInput, setShowPinKeyInput] = useState(false);
+  const [filterPhrase, setFilterPhrase] = useState("");
+  const [selectedSourceFilter, setSelectedSourceFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<"keyword-asc" | "keyword-desc" | "source" | "interest">("keyword-asc");
+
+  const [results, setResults] = useState<RealKeywordItem[]>([]);
+  const [totalFound, setTotalFound] = useState(0);
+  const [googleTrendsInterest, setGoogleTrendsInterest] = useState<number | null>(null);
+  const [googleTrendsStatus, setGoogleTrendsStatus] = useState<"available" | "not available">("not available");
+  const [pinStatus, setPinStatus] = useState<"connected" | "not connected" | "error">("not connected");
+  const [sourcesUsed, setSourcesUsed] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "clusters" | "saved">("all");
+  const [activeTab, setActiveTab] = useState<"table" | "saved">("table");
 
   // Saved lists
   const [savedLists, setSavedLists] = useState<SavedKeywordList[]>([]);
@@ -32,16 +34,27 @@ export default function KeywordResearchPage() {
   const [newListName, setNewListName] = useState("");
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
-  async function searchKeywords(searchQ: string = query) {
+  async function searchKeywords(searchQ: string = query, apiKey: string = pinKey) {
     if (!searchQ.trim()) return;
     setLoading(true);
     setStatusMsg(null);
     try {
-      const res = await fetch(`/api/keywords/search?q=${encodeURIComponent(searchQ.trim())}`);
-      const json = await res.json();
+      const params = new URLSearchParams({
+        q: searchQ.trim(),
+      });
+      if (apiKey.trim()) {
+        params.set("pinKey", apiKey.trim());
+      }
+
+      const res = await fetch(`/api/keywords/search?${params.toString()}`);
+      const json: KeywordSearchResults & { error?: string } = await res.json();
       if (res.ok) {
         setResults(json.keywords ?? []);
-        setClusters(json.clusters ?? {});
+        setTotalFound(json.total ?? 0);
+        setGoogleTrendsInterest(json.googleTrendsSeedInterest ?? null);
+        setGoogleTrendsStatus(json.googleTrendsStatus ?? "not available");
+        setPinStatus(json.pinPinterestStatus ?? "not connected");
+        setSourcesUsed(json.sourcesUsed ?? []);
       } else {
         setStatusMsg(`Search error: ${json.error || "Failed to fetch keywords"}`);
       }
@@ -111,15 +124,71 @@ export default function KeywordResearchPage() {
     } catch {}
   }
 
+  // Filter & sort results
+  const filteredResults = useMemo(() => {
+    let list = [...results];
+
+    // Filter by phrase
+    if (filterPhrase.trim()) {
+      const f = filterPhrase.toLowerCase().trim();
+      list = list.filter((item) => item.keyword.toLowerCase().includes(f));
+    }
+
+    // Filter by source
+    if (selectedSourceFilter !== "all") {
+      list = list.filter((item) => item.sourceLabel.toLowerCase().includes(selectedSourceFilter.toLowerCase()));
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      if (sortBy === "keyword-asc") {
+        return a.keyword.localeCompare(b.keyword);
+      }
+      if (sortBy === "keyword-desc") {
+        return b.keyword.localeCompare(a.keyword);
+      }
+      if (sortBy === "source") {
+        return a.source.localeCompare(b.source);
+      }
+      if (sortBy === "interest") {
+        const valA = a.relativeInterest ?? -1;
+        const valB = b.relativeInterest ?? -1;
+        return valB - valA;
+      }
+      return 0;
+    });
+
+    return list;
+  }, [results, filterPhrase, selectedSourceFilter, sortBy]);
+
   function exportCSV() {
-    const headers = ["Keyword", "Cluster", "Competition", "Opportunity Score", "Intent", "Suggested Board"];
-    const rows = results.map((r) => [
+    const headers = [
+      "Keyword",
+      "Source",
+      "Source Category",
+      "Relative Interest (0-100)",
+      "Trend Signal",
+      "Trend Data Source",
+      "Pin Count",
+      "Competition",
+      "Saves",
+      "Est Clicks",
+      "Opportunity",
+      "Pin Data Source",
+    ];
+    const rows = filteredResults.map((r) => [
       `"${r.keyword.replace(/"/g, '""')}"`,
-      `"${r.cluster}"`,
+      `"${r.source}"`,
+      `"${r.sourceLabel}"`,
+      r.relativeInterest !== null ? r.relativeInterest : "not available",
+      `"${r.trendSignal}"`,
+      `"${r.trendSource}"`,
+      `"${r.pinCount}"`,
       `"${r.competition}"`,
-      r.score,
-      `"${r.intent}"`,
-      `"${r.suggestedBoard}"`,
+      `"${r.saves}"`,
+      `"${r.estClicks}"`,
+      `"${r.opportunity}"`,
+      `"${r.pinSource}"`,
     ]);
     const csvContent = [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -132,23 +201,31 @@ export default function KeywordResearchPage() {
     document.body.removeChild(link);
   }
 
-  const sampleSeeds = ["ceramic mug", "pottery ideas", "crochet patterns", "handmade candles", "woodworking gifts", "cottagecore decor"];
+  const sampleSeeds = [
+    "ceramic mug",
+    "pottery ideas",
+    "crochet patterns",
+    "handmade candles",
+    "woodworking gifts",
+    "cottagecore decor",
+    "minimalist jewelry",
+  ];
 
   return (
     <AppShell
       active="keywords"
-      title="Pinterest Keyword Research"
-      subtitle="Discover high-opportunity search terms, cluster keywords, and export SEO tags for your pins."
+      title="Pinterest Keyword Tool"
+      subtitle="PinPress-style keyword research powered exclusively by real free data sources: Google Autocomplete (A-Z, questions, prepositions), Datamuse semantic associations, and Google Trends relative interest."
       actions={
         <div style={{ display: "flex", gap: 10 }}>
           <button
             type="button"
             onClick={exportCSV}
-            disabled={results.length === 0}
+            disabled={filteredResults.length === 0}
             className="craft-btn-outline"
             style={{ fontSize: "0.88rem" }}
           >
-            📥 Export CSV ({results.length})
+            📥 Export CSV ({filteredResults.length})
           </button>
           <Link href="/compose" className="craft-btn-primary">
             + Open Composer
@@ -160,8 +237,8 @@ export default function KeywordResearchPage() {
       {statusMsg && (
         <div
           style={{
-            background: "#FFFDF9",
-            border: "1px solid #E7D7C1",
+            background: "#F8FAFC",
+            border: "1px solid #E2E8F0",
             borderRadius: 12,
             padding: "12px 18px",
             marginBottom: 20,
@@ -169,59 +246,119 @@ export default function KeywordResearchPage() {
             justifyContent: "space-between",
             alignItems: "center",
             fontSize: "0.9rem",
-            color: "#2D2118",
+            color: "#0F172A",
           }}
         >
           <span>{statusMsg}</span>
           <button
             type="button"
             onClick={() => setStatusMsg(null)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#8E7564" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#64748B" }}
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Search Bar Card */}
-      <div className="craft-card">
+      {/* Main Search & Source Controls Card */}
+      <div className="craft-card" style={{ marginBottom: 20 }}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            searchKeywords();
+            searchKeywords(query, pinKey);
           }}
-          style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}
+          style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}
         >
           <input
             type="text"
             className="craft-input"
             style={{ flex: 1, minWidth: 260, fontSize: "1.05rem" }}
-            placeholder="Enter seed topic (e.g. ceramic mug, chunky knit blanket, soy candle)..."
+            placeholder="Enter seed keyword (e.g. ceramic mug, crochet blanket, soy candle)..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button type="submit" disabled={loading} className="craft-btn-primary">
-            {loading ? "Searching..." : "🔍 Search Autocomplete"}
+          <button type="submit" disabled={loading} className="craft-btn-primary" style={{ padding: "10px 24px" }}>
+            {loading ? "Discovering Real Keywords..." : "🔍 Search Keywords"}
           </button>
         </form>
 
+        {/* PinPinterest Key Toggle */}
+        <div style={{ marginBottom: 14 }}>
+          <button
+            type="button"
+            onClick={() => setShowPinKeyInput(!showPinKeyInput)}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              fontSize: "0.85rem",
+              color: "#2563EB",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontWeight: 600,
+            }}
+          >
+            {showPinKeyInput ? "▼ Hide optional PinPinterest key" : "▶ Add optional free PinPinterest API key"}
+          </button>
+
+          {showPinKeyInput && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: "12px 16px",
+                background: "#F8FAFC",
+                border: "1px solid #E2E8F0",
+                borderRadius: 10,
+              }}
+            >
+              <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+                PinPinterest API Key (api.pinpinterest.com):
+              </label>
+              <div style={{ display: "flex", gap: 10 }}>
+                <input
+                  type="password"
+                  className="craft-input"
+                  style={{ flex: 1, fontSize: "0.88rem" }}
+                  placeholder="Paste your free PinPinterest API key here..."
+                  value={pinKey}
+                  onChange={(e) => setPinKey(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => searchKeywords(query, pinKey)}
+                  className="craft-btn-secondary craft-btn-sm"
+                  disabled={loading}
+                >
+                  Apply Key & Re-query
+                </button>
+              </div>
+              <p style={{ margin: "6px 0 0", fontSize: "0.78rem", color: "#64748B" }}>
+                When omitted, PinPinterest fields will display &quot;not connected&quot;. When provided, real metrics from api.pinpinterest.com will populate. Never invented numbers.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Popular sample tags */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: "0.85rem" }}>
-          <span style={{ color: "#8E7564", fontWeight: 650 }}>Popular maker queries:</span>
+          <span style={{ color: "#64748B", fontWeight: 600 }}>Suggested seed queries:</span>
           {sampleSeeds.map((seed) => (
             <button
               key={seed}
               type="button"
               onClick={() => {
                 setQuery(seed);
-                searchKeywords(seed);
+                searchKeywords(seed, pinKey);
               }}
               style={{
-                background: "#FAF4EB",
-                border: "1px solid #E7D7C1",
+                background: "#F8FAFC",
+                border: "1px solid #E2E8F0",
                 padding: "3px 10px",
                 borderRadius: 9999,
                 fontSize: "0.82rem",
-                color: "#6A5343",
+                color: "#475569",
                 cursor: "pointer",
               }}
             >
@@ -231,21 +368,74 @@ export default function KeywordResearchPage() {
         </div>
       </div>
 
+      {/* Real Data Transparency & Diagnostics Banner */}
+      <div
+        style={{
+          background: "#FFFFFF",
+          border: "1px solid #E2E8F0",
+          borderRadius: 12,
+          padding: "16px 20px",
+          marginBottom: 20,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: "1.1rem" }}>📡</span>
+            <strong style={{ color: "#0F172A", fontSize: "0.95rem" }}>Verified Real Free Data Sources</strong>
+            <span style={{ fontSize: "0.82rem", color: "#64748B" }}>({totalFound} unique keywords expanded)</span>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: "0.78rem", padding: "4px 10px", borderRadius: 9999, background: "#EFF6FF", color: "#1D4ED8", fontWeight: 600, border: "1px solid #BFDBFE" }}>
+              ✓ Google Autocomplete (A-Z, Prepositions)
+            </span>
+            <span style={{ fontSize: "0.78rem", padding: "4px 10px", borderRadius: 9999, background: "#EFF6FF", color: "#1D4ED8", fontWeight: 600, border: "1px solid #BFDBFE" }}>
+              ✓ Datamuse Semantic API
+            </span>
+            <span
+              style={{
+                fontSize: "0.78rem",
+                padding: "4px 10px",
+                borderRadius: 9999,
+                background: googleTrendsStatus === "available" ? "#F0FDF4" : "#F8FAFC",
+                color: googleTrendsStatus === "available" ? "#15803D" : "#64748B",
+                fontWeight: 600,
+                border: "1px solid " + (googleTrendsStatus === "available" ? "#BBF7D0" : "#E2E8F0"),
+              }}
+            >
+              {googleTrendsStatus === "available"
+                ? `✓ Google Trends: ${googleTrendsInterest}/100 Relative Interest`
+                : "Google Trends: not available"}
+            </span>
+            <span
+              style={{
+                fontSize: "0.78rem",
+                padding: "4px 10px",
+                borderRadius: 9999,
+                background: pinStatus === "connected" ? "#F0FDF4" : "#F8FAFC",
+                color: pinStatus === "connected" ? "#15803D" : "#64748B",
+                fontWeight: 600,
+                border: "1px solid " + (pinStatus === "connected" ? "#BBF7D0" : "#E2E8F0"),
+              }}
+            >
+              {pinStatus === "connected" ? "✓ PinPinterest API: Connected" : "PinPinterest: not connected"}
+            </span>
+          </div>
+        </div>
+
+        <p style={{ margin: 0, fontSize: "0.8rem", color: "#64748B", lineHeight: 1.5 }}>
+          <strong>Policy Notice:</strong> Zero fake synthesized modifiers. Zero heuristic 0-100 word-count scores. Google Trends metrics represent <em>relative interest (0-100)</em> over the past 12 months, never estimated search volume. Every column carries its explicit source attribution.
+        </p>
+      </div>
+
       {/* View Switcher Tabs */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
         <button
           type="button"
-          onClick={() => setActiveTab("all")}
-          className={activeTab === "all" ? "craft-btn-primary craft-btn-sm" : "craft-btn-outline craft-btn-sm"}
+          onClick={() => setActiveTab("table")}
+          className={activeTab === "table" ? "craft-btn-primary craft-btn-sm" : "craft-btn-outline craft-btn-sm"}
         >
-          All Keywords ({results.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("clusters")}
-          className={activeTab === "clusters" ? "craft-btn-primary craft-btn-sm" : "craft-btn-outline craft-btn-sm"}
-        >
-          By Clusters ({Object.keys(clusters).length})
+          Results Table ({filteredResults.length})
         </button>
         <button
           type="button"
@@ -256,114 +446,264 @@ export default function KeywordResearchPage() {
         </button>
       </div>
 
-      {/* Tab: All Keywords Table */}
-      {activeTab === "all" && (
-        <div className="craft-card" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", margin: 0 }}>
-              <thead>
-                <tr style={{ background: "#FBF4EA", borderBottom: "1px solid #E7D7C1" }}>
-                  <th style={{ padding: "14px 18px", fontSize: "0.82rem", textTransform: "uppercase", color: "#6A5343" }}>Keyword</th>
-                  <th style={{ padding: "14px 18px", fontSize: "0.82rem", textTransform: "uppercase", color: "#6A5343" }}>Cluster</th>
-                  <th style={{ padding: "14px 18px", fontSize: "0.82rem", textTransform: "uppercase", color: "#6A5343" }}>Competition</th>
-                  <th style={{ padding: "14px 18px", fontSize: "0.82rem", textTransform: "uppercase", color: "#6A5343" }}>Score</th>
-                  <th style={{ padding: "14px 18px", fontSize: "0.82rem", textTransform: "uppercase", color: "#6A5343" }}>Search Intent</th>
-                  <th style={{ padding: "14px 18px", fontSize: "0.82rem", textTransform: "uppercase", color: "#6A5343", textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((r, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid #F0E6D8" }}>
-                    <td style={{ padding: "14px 18px", fontWeight: 700, color: "#2D2118" }}>
-                      {r.keyword}
-                    </td>
-                    <td style={{ padding: "14px 18px", fontSize: "0.88rem", color: "#6A5343" }}>
-                      <span className="craft-pill craft-pill-neutral">{r.cluster}</span>
-                    </td>
-                    <td style={{ padding: "14px 18px" }}>
-                      {r.competition === "Low" && <span className="craft-pill craft-pill-published">Low Competition</span>}
-                      {r.competition === "Medium" && <span className="craft-pill craft-pill-queued">Medium</span>}
-                      {r.competition === "High" && <span className="craft-pill craft-pill-failed">High</span>}
-                    </td>
-                    <td style={{ padding: "14px 18px", fontWeight: 700, color: r.score >= 70 ? "#2E8B57" : "#C27438" }}>
-                      {r.score}/100
-                    </td>
-                    <td style={{ padding: "14px 18px", fontSize: "0.85rem", color: "#6A5343" }}>
-                      {r.intent}
-                    </td>
-                    <td style={{ padding: "14px 18px", textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                        <button
-                          type="button"
-                          onClick={() => addKeywordToList(r.keyword)}
-                          className="craft-btn-secondary craft-btn-sm"
-                          title="Save to list"
-                        >
-                          + Save
-                        </button>
-                        <Link
-                          href={`/compose?tags=${encodeURIComponent(r.keyword)}&title=${encodeURIComponent(r.keyword.charAt(0).toUpperCase() + r.keyword.slice(1))}`}
-                          className="craft-btn-outline craft-btn-sm"
-                          title="Use in Composer"
-                        >
-                          Use in Pin
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {/* TAB: Table View */}
+      {activeTab === "table" && (
+        <>
+          {/* Filter & Sort Bar */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 12,
+              marginBottom: 14,
+              padding: "10px 14px",
+              background: "#FFFFFF",
+              border: "1px solid #E2E8F0",
+              borderRadius: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 240 }}>
+              <span style={{ fontSize: "0.88rem", color: "#64748B" }}>🔎</span>
+              <input
+                type="text"
+                placeholder="Filter by phrase (e.g. handmade, with handle, gift)..."
+                value={filterPhrase}
+                onChange={(e) => setFilterPhrase(e.target.value)}
+                className="craft-input"
+                style={{ padding: "6px 12px", fontSize: "0.88rem", flex: 1 }}
+              />
+              {filterPhrase && (
+                <button
+                  type="button"
+                  onClick={() => setFilterPhrase("")}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#64748B", fontSize: "0.85rem" }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
 
-      {/* Tab: By Clusters */}
-      {activeTab === "clusters" && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
-          {Object.entries(clusters).map(([clusterName, clusterItems]) => (
-            <div key={clusterName} className="craft-card" style={{ marginBottom: 0 }}>
-              <div className="craft-card-header">
-                <h4 style={{ margin: 0, fontSize: "1.15rem" }}>{clusterName}</h4>
-                <span className="craft-pill craft-pill-neutral">{clusterItems.length} terms</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.85rem" }}>
+                <span style={{ color: "#64748B" }}>Source:</span>
+                <select
+                  value={selectedSourceFilter}
+                  onChange={(e) => setSelectedSourceFilter(e.target.value)}
+                  className="craft-select"
+                  style={{ padding: "5px 10px", fontSize: "0.85rem" }}
+                >
+                  <option value="all">All Sources</option>
+                  <option value="Autocomplete">Google Autocomplete</option>
+                  <option value="Datamuse">Datamuse API</option>
+                  <option value="Trends">Google Trends</option>
+                </select>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {clusterItems.map((item, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px 12px",
-                      background: "#FFFFFF",
-                      border: "1px solid #E7D7C1",
-                      borderRadius: 10,
-                      fontSize: "0.88rem",
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 650, color: "#2D2118" }}>{item.keyword}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#8E7564" }}>
-                        {item.intent} • {item.competition} Comp
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => addKeywordToList(item.keyword)}
-                      className="craft-btn-outline craft-btn-sm"
-                    >
-                      + Save
-                    </button>
-                  </div>
-                ))}
+
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.85rem" }}>
+                <span style={{ color: "#64748B" }}>Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="craft-select"
+                  style={{ padding: "5px 10px", fontSize: "0.85rem" }}
+                >
+                  <option value="keyword-asc">Keyword (A → Z)</option>
+                  <option value="keyword-desc">Keyword (Z → A)</option>
+                  <option value="interest">Relative Interest</option>
+                  <option value="source">Source</option>
+                </select>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+
+          {/* Table Card */}
+          <div className="craft-card" style={{ padding: 0, overflow: "hidden" }}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", margin: 0 }}>
+                <thead>
+                  <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>
+                      Keyword
+                    </th>
+                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>
+                      Source
+                    </th>
+                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>
+                      Relative Interest
+                      <div style={{ fontSize: "0.68rem", textTransform: "none", color: "#64748B", fontWeight: 400 }}>
+                        (Google Trends 0-100)
+                      </div>
+                    </th>
+                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>
+                      Pin Count
+                      <div style={{ fontSize: "0.68rem", textTransform: "none", color: "#64748B", fontWeight: 400 }}>
+                        (PinPinterest)
+                      </div>
+                    </th>
+                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>
+                      Competition
+                      <div style={{ fontSize: "0.68rem", textTransform: "none", color: "#64748B", fontWeight: 400 }}>
+                        (PinPinterest)
+                      </div>
+                    </th>
+                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>
+                      Saves
+                      <div style={{ fontSize: "0.68rem", textTransform: "none", color: "#64748B", fontWeight: 400 }}>
+                        (PinPinterest)
+                      </div>
+                    </th>
+                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>
+                      Est. Clicks
+                      <div style={{ fontSize: "0.68rem", textTransform: "none", color: "#64748B", fontWeight: 400 }}>
+                        (PinPinterest)
+                      </div>
+                    </th>
+                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>
+                      Opportunity
+                      <div style={{ fontSize: "0.68rem", textTransform: "none", color: "#64748B", fontWeight: 400 }}>
+                        (PinPinterest)
+                      </div>
+                    </th>
+                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "right" }}>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredResults.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} style={{ padding: "32px 20px", textAlign: "center", color: "#64748B" }}>
+                        {loading ? "Fetching real keyword suggestions..." : "No keywords match your filter."}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredResults.map((r, i) => (
+                      <tr key={i} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                        <td style={{ padding: "12px 16px", fontWeight: 650, color: "#0F172A", maxWidth: 260 }}>
+                          <div style={{ wordBreak: "break-word" }}>{r.keyword}</div>
+                        </td>
+
+                        <td style={{ padding: "12px 16px", fontSize: "0.82rem" }}>
+                          <span
+                            style={{
+                              display: "inline-block",
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              background: r.source.includes("Trends")
+                                ? "#FEF3C7"
+                                : r.source.includes("Datamuse")
+                                ? "#F3E8FF"
+                                : "#EFF6FF",
+                              color: r.source.includes("Trends")
+                                ? "#92400E"
+                                : r.source.includes("Datamuse")
+                                ? "#6B21A8"
+                                : "#1D4ED8",
+                            }}
+                          >
+                            {r.source}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: "12px 16px", fontSize: "0.85rem" }}>
+                          {r.relativeInterest !== null ? (
+                            <div>
+                              <span style={{ fontWeight: 700, color: "#2563EB" }}>
+                                {r.relativeInterest}/100
+                              </span>
+                              <div style={{ fontSize: "0.72rem", color: "#64748B" }}>relative interest</div>
+                            </div>
+                          ) : r.trendSignal !== "not available" ? (
+                            <div>
+                              <span style={{ fontWeight: 700, color: "#059669" }}>
+                                {r.trendSignal}
+                              </span>
+                            </div>
+                          ) : (
+                            <span style={{ color: "#94A3B8", fontStyle: "italic", fontSize: "0.8rem" }}>
+                              not available
+                            </span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: "12px 16px", fontSize: "0.85rem" }}>
+                          {r.pinCount === "not connected" ? (
+                            <span style={{ color: "#94A3B8", fontStyle: "italic", fontSize: "0.8rem" }}>not connected</span>
+                          ) : (
+                            <span style={{ fontWeight: 600, color: "#0F172A" }}>{r.pinCount}</span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: "12px 16px", fontSize: "0.85rem" }}>
+                          {r.competition === "not connected" ? (
+                            <span style={{ color: "#94A3B8", fontStyle: "italic", fontSize: "0.8rem" }}>not connected</span>
+                          ) : (
+                            <span style={{ fontWeight: 600, color: "#0F172A" }}>{r.competition}</span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: "12px 16px", fontSize: "0.85rem" }}>
+                          {r.saves === "not connected" ? (
+                            <span style={{ color: "#94A3B8", fontStyle: "italic", fontSize: "0.8rem" }}>not connected</span>
+                          ) : (
+                            <span style={{ fontWeight: 600, color: "#0F172A" }}>{r.saves}</span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: "12px 16px", fontSize: "0.85rem" }}>
+                          {r.estClicks === "not connected" ? (
+                            <span style={{ color: "#94A3B8", fontStyle: "italic", fontSize: "0.8rem" }}>not connected</span>
+                          ) : (
+                            <span style={{ fontWeight: 600, color: "#0F172A" }}>{r.estClicks}</span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: "12px 16px", fontSize: "0.85rem" }}>
+                          {r.opportunity === "not connected" ? (
+                            <span style={{ color: "#94A3B8", fontStyle: "italic", fontSize: "0.8rem" }}>not connected</span>
+                          ) : (
+                            <span style={{ fontWeight: 600, color: "#0F172A" }}>{r.opportunity}</span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                          <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                            <button
+                              type="button"
+                              onClick={() => addKeywordToList(r.keyword)}
+                              className="craft-btn-secondary craft-btn-sm"
+                              title="Save to list"
+                              style={{ padding: "4px 8px", fontSize: "0.78rem" }}
+                            >
+                              + Save
+                            </button>
+                            <Link
+                              href={`/compose?tags=${encodeURIComponent(r.keyword)}&title=${encodeURIComponent(
+                                r.keyword.charAt(0).toUpperCase() + r.keyword.slice(1)
+                              )}`}
+                              className="craft-btn-outline craft-btn-sm"
+                              title="Use in Composer"
+                              style={{ padding: "4px 8px", fontSize: "0.78rem" }}
+                            >
+                              Use
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Tab: Saved Lists */}
+      {/* TAB: Saved Lists Management */}
       {activeTab === "saved" && (
         <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 24 }}>
           {/* Left: Selected List Details */}
@@ -385,13 +725,13 @@ export default function KeywordResearchPage() {
                   }}
                   className="craft-btn-outline craft-btn-sm"
                 >
-                  Export List
+                  Export List (.txt)
                 </button>
               )}
             </div>
 
             {savedLists.length === 0 ? (
-              <p style={{ color: "#8E7564" }}>No saved lists yet. Create one using the form on the right.</p>
+              <p style={{ color: "#64748B" }}>No saved lists yet. Create one using the form on the right.</p>
             ) : (
               <div>
                 <div style={{ marginBottom: 16 }}>
@@ -412,7 +752,7 @@ export default function KeywordResearchPage() {
                 {(() => {
                   const current = savedLists.find((l) => l.id === selectedListId);
                   if (!current || current.keywords.length === 0) {
-                    return <p style={{ color: "#8E7564", fontStyle: "italic" }}>No keywords saved in this list yet.</p>;
+                    return <p style={{ color: "#64748B", fontStyle: "italic" }}>No keywords saved in this list yet.</p>;
                   }
                   return (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -423,18 +763,19 @@ export default function KeywordResearchPage() {
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 8,
-                            background: "#FAF4EB",
-                            border: "1px solid #E7D7C1",
+                            background: "#F8FAFC",
+                            border: "1px solid #E2E8F0",
                             padding: "6px 12px",
                             borderRadius: 9999,
                             fontSize: "0.85rem",
-                            fontWeight: 650,
+                            fontWeight: 600,
+                            color: "#0F172A",
                           }}
                         >
                           <span>{kw}</span>
                           <Link
                             href={`/compose?tags=${encodeURIComponent(kw)}`}
-                            style={{ fontSize: "0.75rem", color: "#9D1C2F" }}
+                            style={{ fontSize: "0.75rem", color: "#2563EB" }}
                             title="Compose with this keyword"
                           >
                             📌
@@ -451,7 +792,7 @@ export default function KeywordResearchPage() {
           {/* Right: Create New List Form */}
           <div className="craft-card" style={{ height: "fit-content" }}>
             <div className="craft-card-header">
-              <h4 style={{ margin: 0 }}>Create New List</h4>
+              <h4 style={{ margin: 0, color: "#0F172A" }}>Create New List</h4>
             </div>
             <form onSubmit={handleCreateList}>
               <div className="craft-form-group">

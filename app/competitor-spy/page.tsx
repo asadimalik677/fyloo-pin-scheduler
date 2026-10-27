@@ -3,36 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
-
-interface CompetitorProfile {
-  handle: string;
-  name: string;
-  bio: string;
-  followers: string;
-  monthlyViews: string;
-  boards: {
-    id: string;
-    name: string;
-    pinCount: number;
-    description: string;
-    topics: string[];
-  }[];
-  topPins: {
-    id: string;
-    title: string;
-    description: string;
-    hashtags: string[];
-    linkDomain: string;
-    estimatedSaves: number;
-  }[];
-}
-
-interface ContentGap {
-  topic: string;
-  competitorBoard: string;
-  opportunity: "High" | "Medium";
-  suggestedAction: string;
-}
+import { CompetitorProfile, ContentGap } from "../../lib/competitors";
 
 export default function CompetitorSpyPage() {
   const [handle, setHandle] = useState("potterycrafts");
@@ -71,7 +42,7 @@ export default function CompetitorSpyPage() {
     <AppShell
       active="competitor-spy"
       title="Competitor Spy & Content Gaps"
-      subtitle="Analyze top creators in your niche, inspect their board strategies, and discover untargeted search topics."
+      subtitle="Inspect live public Pinterest creator profiles and uncover search content gaps using real autocomplete queries."
       actions={
         <div style={{ display: "flex", gap: 10 }}>
           <Link href="/keywords" className="craft-btn-secondary craft-btn-sm">
@@ -101,12 +72,12 @@ export default function CompetitorSpyPage() {
             onChange={(e) => setHandle(e.target.value)}
           />
           <button type="submit" disabled={loading} className="craft-btn-primary">
-            {loading ? "Analyzing..." : "🔎 Inspect Competitor"}
+            {loading ? "Inspecting..." : "🔎 Inspect Competitor"}
           </button>
         </form>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: "0.85rem" }}>
-          <span style={{ color: "#8E7564", fontWeight: 650 }}>Suggested creator profiles:</span>
+          <span style={{ color: "#64748B", fontWeight: 600 }}>Suggested creator profiles:</span>
           {sampleCompetitors.map((samp) => (
             <button
               key={samp}
@@ -116,12 +87,12 @@ export default function CompetitorSpyPage() {
                 fetchCompetitor(samp);
               }}
               style={{
-                background: "#FAF4EB",
-                border: "1px solid #E7D7C1",
+                background: "#F8FAFC",
+                border: "1px solid #E2E8F0",
                 padding: "3px 10px",
                 borderRadius: 9999,
                 fontSize: "0.82rem",
-                color: "#6A5343",
+                color: "#475569",
                 cursor: "pointer",
               }}
             >
@@ -132,14 +103,14 @@ export default function CompetitorSpyPage() {
       </div>
 
       {statusMsg && (
-        <div style={{ background: "#FDF0F2", border: "1px solid #F3BAC2", color: "#9D1C2F", padding: "12px 18px", borderRadius: 12, marginBottom: 20 }}>
+        <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626", padding: "12px 18px", borderRadius: 12, marginBottom: 20 }}>
           {statusMsg}
         </div>
       )}
 
       {loading ? (
-        <div style={{ padding: 48, textAlign: "center", color: "#8E7564" }}>
-          Inspecting public boards and extracting top pin metadata...
+        <div style={{ padding: 48, textAlign: "center", color: "#64748B" }}>
+          Inspecting public Pinterest profile and querying autocomplete queries...
         </div>
       ) : profile && (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -147,56 +118,122 @@ export default function CompetitorSpyPage() {
           <div className="craft-card" style={{ marginBottom: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
               <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                <div className="craft-seal" style={{ width: 56, height: 56, fontSize: "1.8rem" }}>
+                <div className="craft-seal" style={{ width: 56, height: 56, fontSize: "1.6rem" }}>
                   {profile.name.charAt(0)}
                 </div>
                 <div>
-                  <h2 style={{ margin: "0 0 4px", fontSize: "1.5rem" }}>{profile.name}</h2>
-                  <div style={{ color: "#8E7564", fontSize: "0.9rem", fontWeight: 600 }}>
-                    @{profile.handle} • Public Pinterest Creator
+                  <h2 style={{ margin: "0 0 4px", fontSize: "1.4rem", color: "#0F172A" }}>{profile.name}</h2>
+                  <div style={{ color: "#64748B", fontSize: "0.88rem", fontWeight: 500 }}>
+                    @{profile.handle} •{" "}
+                    <a
+                      href={profile.profileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "#2563EB", textDecoration: "underline" }}
+                    >
+                      View live profile on Pinterest ↗
+                    </a>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 20, textAlign: "center" }}>
-                <div style={{ background: "#FAF4EB", border: "1px solid #E7D7C1", padding: "10px 18px", borderRadius: 12 }}>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 700, color: "#2D2118", fontFamily: "Georgia, serif" }}>
+              <div style={{ display: "flex", gap: 12, textAlign: "center" }}>
+                <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", padding: "10px 18px", borderRadius: 12 }}>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#64748B" }}>
                     {profile.followers}
                   </div>
-                  <div style={{ fontSize: "0.78rem", color: "#8E7564", textTransform: "uppercase", fontWeight: 700 }}>Followers</div>
+                  <div style={{ fontSize: "0.72rem", color: "#94A3B8", textTransform: "uppercase", fontWeight: 700, marginTop: 4 }}>
+                    Followers
+                  </div>
                 </div>
-                <div style={{ background: "#FAF4EB", border: "1px solid #E7D7C1", padding: "10px 18px", borderRadius: 12 }}>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 700, color: "#9D1C2F", fontFamily: "Georgia, serif" }}>
+                <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", padding: "10px 18px", borderRadius: 12 }}>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "#64748B" }}>
                     {profile.monthlyViews}
                   </div>
-                  <div style={{ fontSize: "0.78rem", color: "#8E7564", textTransform: "uppercase", fontWeight: 700 }}>Monthly Views</div>
+                  <div style={{ fontSize: "0.72rem", color: "#94A3B8", textTransform: "uppercase", fontWeight: 700, marginTop: 4 }}>
+                    Monthly Views
+                  </div>
                 </div>
               </div>
             </div>
 
-            <p style={{ margin: "16px 0 0", color: "#6A5343", fontSize: "0.95rem", lineHeight: 1.5 }}>
+            <p style={{ margin: "16px 0 0", color: "#475569", fontSize: "0.92rem", lineHeight: 1.5 }}>
               {profile.bio}
             </p>
+
+            {/* Connect Pinterest Notice */}
+            <div
+              style={{
+                marginTop: 16,
+                padding: "10px 14px",
+                background: "#F8FAFC",
+                border: "1px solid #E2E8F0",
+                borderRadius: 8,
+                fontSize: "0.82rem",
+                color: "#64748B",
+              }}
+            >
+              🔒 <strong>Real Data Notice:</strong> {profile.notice} Zero synthetic or invented follower counts are shown.
+            </div>
           </div>
+
+          {/* Real Associated Search Queries from Google Autocomplete */}
+          {profile.publicSearchTags.length > 0 && (
+            <div className="craft-card" style={{ marginBottom: 0 }}>
+              <div className="craft-card-header">
+                <h3 className="craft-card-title">Real Public Autocomplete Searches for @{profile.handle}</h3>
+                <span className="craft-pill craft-pill-neutral">Google Autocomplete</span>
+              </div>
+              <p style={{ color: "#64748B", fontSize: "0.86rem", margin: "0 0 14px" }}>
+                Verified real search queries associated with this brand from Google search suggestions:
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {profile.publicSearchTags.map((tag, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      background: "#F8FAFC",
+                      border: "1px solid #E2E8F0",
+                      padding: "6px 14px",
+                      borderRadius: 9999,
+                      fontSize: "0.85rem",
+                      color: "#0F172A",
+                    }}
+                  >
+                    <span>{tag}</span>
+                    <Link
+                      href={`/keywords?q=${encodeURIComponent(tag)}`}
+                      style={{ color: "#2563EB", fontSize: "0.78rem" }}
+                      title="Research in Keyword Tool"
+                    >
+                      🔍
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Content Gap Analysis Spotlight Card */}
           <div
             style={{
-              background: "#FFFDF9",
-              border: "2px solid #C27438",
-              borderRadius: 20,
+              background: "#FFFFFF",
+              border: "1px solid #E2E8F0",
+              borderRadius: 16,
               padding: "24px 28px",
-              boxShadow: "0 8px 24px rgba(194, 116, 56, 0.08)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <span style={{ fontSize: "1.5rem" }}>⚡</span>
-              <h3 style={{ margin: 0, fontSize: "1.3rem", color: "#2D2118" }}>
-                Content Gap Opportunities for Fyloo
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: "1.4rem" }}>⚡</span>
+              <h3 style={{ margin: 0, fontSize: "1.2rem", color: "#0F172A" }}>
+                Content Gap Opportunities
               </h3>
             </div>
-            <p style={{ color: "#6A5343", fontSize: "0.9rem", margin: "0 0 18px" }}>
-              These high-traction topics are driving substantial traffic for @{profile.handle}, but have no corresponding boards in your current Pinterest workspace:
+            <p style={{ color: "#64748B", fontSize: "0.88rem", margin: "0 0 16px" }}>
+              Search topics trending for @{profile.handle} that are currently missing from your Pinterest boards:
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -204,9 +241,9 @@ export default function CompetitorSpyPage() {
                 <div
                   key={idx}
                   style={{
-                    background: "#FAF4EB",
-                    border: "1px solid #E7D7C1",
-                    borderRadius: 14,
+                    background: "#F8FAFC",
+                    border: "1px solid #E2E8F0",
+                    borderRadius: 12,
                     padding: "14px 18px",
                     display: "flex",
                     justifyContent: "space-between",
@@ -217,14 +254,14 @@ export default function CompetitorSpyPage() {
                 >
                   <div style={{ flex: 1, minWidth: 240 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 750, color: "#2D2118", fontSize: "0.98rem" }}>
+                      <span style={{ fontWeight: 650, color: "#0F172A", fontSize: "0.95rem" }}>
                         {gap.topic}
                       </span>
                       <span className="craft-pill craft-pill-queued" style={{ fontSize: "0.72rem" }}>
                         {gap.opportunity} Opportunity
                       </span>
                     </div>
-                    <div style={{ fontSize: "0.85rem", color: "#6A5343" }}>
+                    <div style={{ fontSize: "0.84rem", color: "#475569" }}>
                       {gap.suggestedAction}
                     </div>
                   </div>
@@ -234,96 +271,11 @@ export default function CompetitorSpyPage() {
                       href={`/compose?title=${encodeURIComponent(gap.topic)}&tags=${encodeURIComponent(gap.topic.toLowerCase())}`}
                       className="craft-btn-primary craft-btn-sm"
                     >
-                      Draft Pin for This Gap →
+                      Draft Pin →
                     </Link>
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Competitor Public Boards & Top Pins Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 24 }}>
-            {/* Left: Public Boards */}
-            <div className="craft-card" style={{ marginBottom: 0 }}>
-              <div className="craft-card-header">
-                <h3 className="craft-card-title">Competitor's Boards ({profile.boards.length})</h3>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {profile.boards.map((b) => (
-                  <div
-                    key={b.id}
-                    style={{
-                      background: "#FFFFFF",
-                      border: "1px solid #E7D7C1",
-                      borderRadius: 12,
-                      padding: "14px 16px",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "#2D2118" }}>
-                        📁 {b.name}
-                      </span>
-                      <span className="craft-pill craft-pill-neutral">
-                        {b.pinCount} pins
-                      </span>
-                    </div>
-                    <p style={{ margin: "0 0 10px", fontSize: "0.86rem", color: "#6A5343" }}>
-                      {b.description}
-                    </p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {b.topics.map((top, i) => (
-                        <span key={i} className="pin-tag-chip" style={{ fontSize: "0.75rem" }}>
-                          #{top}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Top Performing Pins */}
-            <div className="craft-card" style={{ marginBottom: 0 }}>
-              <div className="craft-card-header">
-                <h3 className="craft-card-title">Top Performing Pins</h3>
-                <span style={{ fontSize: "0.8rem", color: "#8E7564" }}>High save rate</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {profile.topPins.map((p) => (
-                  <div
-                    key={p.id}
-                    style={{
-                      background: "#FFFFFF",
-                      border: "1px solid #E7D7C1",
-                      borderRadius: 12,
-                      padding: "14px 16px",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-                      <span style={{ fontWeight: 700, fontSize: "0.98rem", color: "#2D2118", lineHeight: 1.3 }}>
-                        {p.title}
-                      </span>
-                      <span style={{ fontSize: "0.8rem", fontWeight: 750, color: "#C27438", whiteSpace: "nowrap", marginLeft: 8 }}>
-                        ★ {p.estimatedSaves.toLocaleString()} saves
-                      </span>
-                    </div>
-                    <p style={{ margin: "0 0 8px", fontSize: "0.85rem", color: "#6A5343" }}>
-                      {p.description}
-                    </p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                      {p.hashtags.map((h, idx) => (
-                        <span key={idx} style={{ color: "#9D1C2F", fontSize: "0.78rem", fontWeight: 650 }}>
-                          {h}
-                        </span>
-                      ))}
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "#8E7564" }}>
-                      Outbound Link Domain: <strong>{p.linkDomain}</strong>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </div>

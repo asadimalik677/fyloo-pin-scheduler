@@ -5,9 +5,23 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
-    if (!email || !password || password.length < 6) {
-      return NextResponse.json({ success: false, error: "Password must be at least 6 characters long." }, { status: 400 });
+    let body: any = null;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ success: false, error: "Invalid or empty JSON body." }, { status: 400 });
+    }
+
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ success: false, error: "JSON object body is required." }, { status: 400 });
+    }
+
+    const { email, password } = body;
+    if (!email || !password || typeof password !== "string" || password.trim().length < 6) {
+      return NextResponse.json(
+        { success: false, error: "Valid email and password (minimum 6 characters) are required." },
+        { status: 400 }
+      );
     }
 
     const result = await resetUserPassword(email, password);
@@ -34,6 +48,9 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (e) {
-    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Failed to reset password" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: e instanceof Error ? e.message : "Failed to reset password" },
+      { status: 500 }
+    );
   }
 }

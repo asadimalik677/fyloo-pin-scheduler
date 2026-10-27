@@ -21,7 +21,7 @@ export default function GrowthDashboardPage() {
     <AppShell
       active="growth"
       title="Growth & Attribution Dashboard"
-      subtitle="Track keyword visibility trajectory, content format performance, and actionable growth opportunities."
+      subtitle="Track verified keyword trends, pin distribution performance, and actionable growth opportunities."
       actions={
         <div style={{ display: "flex", gap: 10 }}>
           <Link href="/keywords" className="craft-btn-secondary craft-btn-sm">
@@ -34,11 +34,47 @@ export default function GrowthDashboardPage() {
       }
     >
       {loading ? (
-        <div style={{ padding: 48, textAlign: "center", color: "#8E7564" }}>
-          Analyzing growth trajectory and keyword rankings...
+        <div style={{ padding: 48, textAlign: "center", color: "#64748B" }}>
+          Retrieving growth signals and real keyword relative interest...
         </div>
       ) : metrics ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* Connect Pinterest Banner if disconnected */}
+          {!metrics.connected && (
+            <div
+              style={{
+                background: "#EFF6FF",
+                border: "1px solid #BFDBFE",
+                borderRadius: 14,
+                padding: "20px 24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 16,
+              }}
+            >
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: "1.2rem" }}>📈</span>
+                  <strong style={{ color: "#1E3A8A", fontSize: "1rem" }}>
+                    Connect Pinterest for real data
+                  </strong>
+                </div>
+                <p style={{ margin: 0, fontSize: "0.86rem", color: "#475569", maxWidth: 640 }}>
+                  Account traffic velocity, save growth, and referral visits require an authorized Pinterest account. No invented numbers or fake percentages are shown.
+                </p>
+              </div>
+              <a
+                href="/api/auth/login"
+                className="craft-btn-primary"
+                style={{ padding: "10px 20px", fontSize: "0.88rem" }}
+              >
+                Connect Pinterest Account →
+              </a>
+            </div>
+          )}
+
           {/* Top Growth KPIs */}
           <div className="craft-stats-grid">
             <div className="craft-stat-box featured">
@@ -46,7 +82,7 @@ export default function GrowthDashboardPage() {
                 <span className="craft-stat-label">Traffic Velocity</span>
                 <span style={{ fontSize: "1.2rem" }}>🚀</span>
               </div>
-              <div className="craft-stat-val" style={{ color: "#2E8B57", fontSize: "1.8rem" }}>
+              <div className="craft-stat-val" style={{ color: "#2563EB", fontSize: metrics.connected ? "1.6rem" : "1.05rem" }}>
                 {metrics.trafficVelocity}
               </div>
               <div className="craft-stat-desc">Monthly organic reach momentum</div>
@@ -57,7 +93,7 @@ export default function GrowthDashboardPage() {
                 <span className="craft-stat-label">Save Rate Growth</span>
                 <span style={{ fontSize: "1.2rem" }}>📌</span>
               </div>
-              <div className="craft-stat-val" style={{ color: "#9D1C2F", fontSize: "1.8rem" }}>
+              <div className="craft-stat-val" style={{ color: "#0F172A", fontSize: metrics.connected ? "1.6rem" : "1.05rem" }}>
                 {metrics.saveGrowth}
               </div>
               <div className="craft-stat-desc">Repin engagement acceleration</div>
@@ -68,10 +104,10 @@ export default function GrowthDashboardPage() {
                 <span className="craft-stat-label">Attributed Shop Visits</span>
                 <span style={{ fontSize: "1.2rem" }}>🛍️</span>
               </div>
-              <div className="craft-stat-val" style={{ color: "#C27438", fontSize: "1.8rem" }}>
-                ~{metrics.monthlyVisits.toLocaleString()}
+              <div className="craft-stat-val" style={{ color: "#0F172A", fontSize: metrics.monthlyVisits !== null ? "1.6rem" : "1.05rem" }}>
+                {metrics.monthlyVisits !== null ? metrics.monthlyVisits.toLocaleString() : "Connect Pinterest for real data"}
               </div>
-              <div className="craft-stat-desc">Monthly referral traffic to shop</div>
+              <div className="craft-stat-desc">Referral traffic to shop links</div>
             </div>
 
             <div className="craft-stat-box">
@@ -79,10 +115,10 @@ export default function GrowthDashboardPage() {
                 <span className="craft-stat-label">Keyword Share</span>
                 <span style={{ fontSize: "1.2rem" }}>🎯</span>
               </div>
-              <div className="craft-stat-val" style={{ fontSize: "1.35rem", lineHeight: 1.25 }}>
-                Top 5
+              <div className="craft-stat-val" style={{ fontSize: metrics.connected ? "1.6rem" : "1.05rem" }}>
+                {metrics.keywordShare}
               </div>
-              <div className="craft-stat-desc">Ranked in 4 core maker categories</div>
+              <div className="craft-stat-desc">Organic search presence</div>
             </div>
           </div>
 
@@ -93,7 +129,6 @@ export default function GrowthDashboardPage() {
                 <span style={{ fontSize: "1.3rem" }}>💡</span>
                 <h3 className="craft-card-title">Priority Growth Recommendations</h3>
               </div>
-              <span className="craft-pill craft-pill-queued">Actionable AI Insights</span>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
@@ -101,8 +136,8 @@ export default function GrowthDashboardPage() {
                 <div
                   key={rec.id}
                   style={{
-                    background: "#FFFFFF",
-                    border: "1px solid #E7D7C1",
+                    background: "#F8FAFC",
+                    border: "1px solid #E2E8F0",
                     borderRadius: 14,
                     padding: "18px 20px",
                     display: "flex",
@@ -111,115 +146,79 @@ export default function GrowthDashboardPage() {
                   }}
                 >
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontWeight: 750, color: "#2D2118", fontSize: "1.05rem" }}>
-                        {rec.title}
-                      </span>
-                    </div>
-                    <p style={{ margin: "0 0 12px", fontSize: "0.86rem", color: "#6A5343", lineHeight: 1.48 }}>
+                    <h4 style={{ margin: "0 0 6px", fontSize: "1.05rem", color: "#0F172A" }}>
+                      {rec.title}
+                    </h4>
+                    <p style={{ margin: "0 0 14px", fontSize: "0.86rem", color: "#475569", lineHeight: 1.5 }}>
                       {rec.description}
                     </p>
-                    <div style={{ fontSize: "0.78rem", color: "#2E8B57", fontWeight: 700, marginBottom: 16 }}>
-                      ★ Expected Impact: {rec.impact}
-                    </div>
                   </div>
-
-                  <Link href={rec.actionLink} className="craft-btn-secondary craft-btn-sm" style={{ textAlign: "center" }}>
-                    {rec.actionLabel}
-                  </Link>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #E2E8F0", paddingTop: 12 }}>
+                    <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#2563EB" }}>
+                      {rec.impact}
+                    </span>
+                    <Link href={rec.actionLink} className="craft-btn-outline craft-btn-sm" style={{ fontSize: "0.8rem" }}>
+                      {rec.actionLabel}
+                    </Link>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Keyword Progress & Content Formats Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 24 }}>
-            {/* Keyword Position Tracker */}
-            <div className="craft-card" style={{ marginBottom: 0 }}>
-              <div className="craft-card-header">
-                <h3 className="craft-card-title">Target Keyword Rankings</h3>
-                <Link href="/keywords" className="craft-btn-outline craft-btn-sm">
-                  Manage Keywords →
-                </Link>
-              </div>
-
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead>
-                    <tr style={{ background: "#FBF4EA", borderBottom: "1px solid #E7D7C1" }}>
-                      <th style={{ padding: "10px 14px", textAlign: "left", fontSize: "0.8rem", color: "#6A5343", textTransform: "uppercase" }}>Keyword</th>
-                      <th style={{ padding: "10px 14px", textAlign: "center", fontSize: "0.8rem", color: "#6A5343", textTransform: "uppercase" }}>Rank</th>
-                      <th style={{ padding: "10px 14px", textAlign: "right", fontSize: "0.8rem", color: "#6A5343", textTransform: "uppercase" }}>Monthly Vol</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {metrics.keywordRankings.map((kr, idx) => (
-                      <tr key={idx} style={{ borderBottom: "1px solid #F0E6D8" }}>
-                        <td style={{ padding: "12px 14px", fontWeight: 700, color: "#2D2118", fontSize: "0.9rem" }}>
-                          {kr.keyword}
-                        </td>
-                        <td style={{ padding: "12px 14px", textAlign: "center" }}>
-                          <span
-                            style={{
-                              background: kr.rank <= 3 ? "#EEF5F0" : "#FAF4EB",
-                              color: kr.rank <= 3 ? "#245735" : "#7B5610",
-                              padding: "3px 8px",
-                              borderRadius: 9999,
-                              fontWeight: 800,
-                              fontSize: "0.82rem",
-                            }}
-                          >
-                            #{kr.rank} {kr.change > 0 ? `(▲${kr.change})` : `(▼${Math.abs(kr.change)})`}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px 14px", textAlign: "right", fontSize: "0.84rem", color: "#6A5343" }}>
-                          {kr.monthlyVolume}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+          {/* Real Keyword Trend Visibility Table */}
+          <div className="craft-card" style={{ padding: 0, overflow: "hidden" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #E2E8F0" }}>
+              <h3 style={{ margin: "0 0 4px", fontSize: "1.1rem", color: "#0F172A" }}>Saved Keywords & Google Trends Signal</h3>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "#64748B" }}>
+                Relative interest (0-100) measured via Google Trends. Never search volume.
+              </p>
             </div>
-
-            {/* Content Format Velocity */}
-            <div className="craft-card" style={{ marginBottom: 0 }}>
-              <div className="craft-card-header">
-                <h3 className="craft-card-title">Content Format Velocity</h3>
-                <span style={{ fontSize: "0.8rem", color: "#8E7564" }}>What performs best</span>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {metrics.contentFormatPerformance.map((fp, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      background: "#FFFFFF",
-                      border: "1px solid #E7D7C1",
-                      borderRadius: 12,
-                      padding: "14px 16px",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-                      <span style={{ fontWeight: 700, color: "#2D2118", fontSize: "0.95rem" }}>
-                        {fp.format}
-                      </span>
-                      <span className="craft-pill craft-pill-neutral" style={{ fontSize: "0.72rem" }}>
-                        {fp.shareOfPins} of pins
-                      </span>
-                    </div>
-
-                    <div style={{ display: "flex", gap: 14, fontSize: "0.82rem", color: "#8E7564", margin: "6px 0 8px" }}>
-                      <span>★ Avg Saves: <strong style={{ color: "#C27438" }}>{fp.avgSaves}</strong></span>
-                      <span>↗ Avg Clicks: <strong style={{ color: "#2E8B57" }}>{fp.avgClicks}</strong></span>
-                    </div>
-
-                    <p style={{ margin: 0, fontSize: "0.82rem", color: "#6A5343", fontStyle: "italic" }}>
-                      "{fp.recommendation}"
-                    </p>
-                  </div>
-                ))}
-              </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", margin: 0 }}>
+                <thead>
+                  <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
+                    <th style={{ padding: "12px 18px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>Keyword</th>
+                    <th style={{ padding: "12px 18px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>Relative Interest</th>
+                    <th style={{ padding: "12px 18px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>Data Source</th>
+                    <th style={{ padding: "12px 18px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "left" }}>Account Ranking</th>
+                    <th style={{ padding: "12px 18px", fontSize: "0.8rem", textTransform: "uppercase", color: "#475569", textAlign: "right" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.keywordRankings.map((k, i) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                      <td style={{ padding: "12px 18px", fontWeight: 650, color: "#0F172A" }}>
+                        {k.keyword}
+                      </td>
+                      <td style={{ padding: "12px 18px", fontSize: "0.88rem" }}>
+                        {k.relativeInterest !== null ? (
+                          <span style={{ fontWeight: 700, color: "#2563EB" }}>
+                            {k.relativeInterest}/100
+                          </span>
+                        ) : (
+                          <span style={{ color: "#94A3B8", fontStyle: "italic" }}>not available</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "12px 18px", fontSize: "0.82rem", color: "#64748B" }}>
+                        <span className="craft-pill craft-pill-neutral">{k.trendSource}</span>
+                      </td>
+                      <td style={{ padding: "12px 18px", fontSize: "0.85rem", color: "#64748B" }}>
+                        {k.accountRank}
+                      </td>
+                      <td style={{ padding: "12px 18px", textAlign: "right" }}>
+                        <Link
+                          href={`/compose?tags=${encodeURIComponent(k.keyword)}`}
+                          className="craft-btn-outline craft-btn-sm"
+                          style={{ padding: "4px 8px", fontSize: "0.78rem" }}
+                        >
+                          Pin Topic
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

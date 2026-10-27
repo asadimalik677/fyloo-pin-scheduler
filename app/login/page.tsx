@@ -77,11 +77,6 @@ function LoginForm() {
     }
   }
 
-  function handlePrefillDemo() {
-    setEmail("demo@fyloo.com");
-    setPassword("fyloo123");
-  }
-
   return (
     <div
       style={{
@@ -264,24 +259,6 @@ function LoginForm() {
               {loading ? "Authenticating..." : "Sign in to Dashboard →"}
             </button>
           </form>
-
-          {/* Quick Demo Pre-fill */}
-          <div style={{ marginTop: 14, textAlign: "center" }}>
-            <button
-              type="button"
-              onClick={handlePrefillDemo}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: "0.78rem",
-                color: "#64748B",
-                cursor: "pointer",
-                textDecoration: "underline",
-              }}
-            >
-              Prefill demo credentials (demo@fyloo.com)
-            </button>
-          </div>
 
           <div style={{ marginTop: 20, textAlign: "center", fontSize: "0.86rem", color: "#64748B" }}>
             Don&apos;t have an account?{" "}

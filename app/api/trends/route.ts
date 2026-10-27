@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
-import { SEASONAL_CALENDAR, RISING_TRENDS } from "../../../lib/trends";
+import { getTrendsData } from "../../../lib/trends";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json({
-    calendar: SEASONAL_CALENDAR,
-    risingTrends: RISING_TRENDS,
-  });
+  try {
+    const data = await getTrendsData();
+    return NextResponse.json(data);
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to load trends" },
+      { status: 500 }
+    );
+  }
 }

@@ -1,32 +1,32 @@
 import { NextResponse } from "next/server";
-import { fetchPinterestSuggestions, analyzeKeyword } from "../../../../lib/keywords";
+import { getRealKeywordData } from "../../../../lib/keyword-sources";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const q = url.searchParams.get("q") || "ceramic mug";
+    const q = url.searchParams.get("q") || "modern home decor";
+    const pinKey = url.searchParams.get("pinKey") || url.searchParams.get("key") || undefined;
 
-    const suggestions = await fetchPinterestSuggestions(q);
-    const analyzed = suggestions.map((s) => analyzeKeyword(s));
+    const results = await getRealKeywordData(q, pinKey);
+    return NextResponse.json(results);
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Keyword search failed" },
+      { status: 500 }
+    );
+  }
+}
 
-    // Sort by score descending (high opportunity first)
-    analyzed.sort((a, b) => b.score - a.score);
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const q = body.q || body.query || "modern home decor";
+    const pinKey = body.pinKey || body.key || body.pinpinterestApiKey || undefined;
 
-    // Group by cluster
-    const clusters: { [cluster: string]: typeof analyzed } = {};
-    for (const item of analyzed) {
-      if (!clusters[item.cluster]) clusters[item.cluster] = [];
-      clusters[item.cluster].push(item);
-    }
-
-    return NextResponse.json({
-      query: q,
-      total: analyzed.length,
-      keywords: analyzed,
-      clusters,
-    });
+    const results = await getRealKeywordData(q, pinKey);
+    return NextResponse.json(results);
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Keyword search failed" },

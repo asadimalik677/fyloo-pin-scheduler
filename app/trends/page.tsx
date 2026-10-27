@@ -8,6 +8,7 @@ import { SeasonalQuarter, TrendItem } from "../../lib/trends";
 export default function TrendRadarPage() {
   const [calendar, setCalendar] = useState<SeasonalQuarter[]>([]);
   const [trends, setTrends] = useState<TrendItem[]>([]);
+  const [connected, setConnected] = useState<boolean>(false);
   const [selectedQuarter, setSelectedQuarter] = useState<string>("Q3");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -18,6 +19,7 @@ export default function TrendRadarPage() {
       .then((j) => {
         setCalendar(j.calendar ?? []);
         setTrends(j.risingTrends ?? []);
+        setConnected(Boolean(j.connected));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -34,7 +36,7 @@ export default function TrendRadarPage() {
     <AppShell
       active="trends"
       title="Pinterest Trend Radar"
-      subtitle="Discover rising aesthetics, breakout seasonal topics, and timing predictions for your handmade collections."
+      subtitle="Discover rising search queries sourced from Google Trends and plan your pin timing with the seasonal radar."
       actions={
         <div style={{ display: "flex", gap: 10 }}>
           <Link href="/keywords" className="craft-btn-outline craft-btn-sm">
@@ -47,17 +49,46 @@ export default function TrendRadarPage() {
       }
     >
       {loading ? (
-        <div style={{ padding: 48, textAlign: "center", color: "#8E7564" }}>
-          Scanning Pinterest trend signals and seasonal calendars...
+        <div style={{ padding: 48, textAlign: "center", color: "#64748B" }}>
+          Scanning Google Trends rising queries and seasonal radar...
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* Account Telemetry Notice if not connected */}
+          {!connected && (
+            <div
+              style={{
+                background: "#EFF6FF",
+                border: "1px solid #BFDBFE",
+                borderRadius: 14,
+                padding: "16px 20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 12,
+              }}
+            >
+              <div>
+                <strong style={{ color: "#1E3A8A", fontSize: "0.95rem" }}>
+                  Connect Pinterest for real account trend data
+                </strong>
+                <p style={{ margin: "2px 0 0", fontSize: "0.84rem", color: "#475569" }}>
+                  Global trend signals below are sourced in real-time from Google Trends. Account-specific audience trends require an authorized Pinterest connection.
+                </p>
+              </div>
+              <a href="/api/auth/login" className="craft-btn-primary craft-btn-sm">
+                Connect Account
+              </a>
+            </div>
+          )}
+
           {/* Seasonal Calendar & Timing Engine */}
           <div className="craft-card" style={{ marginBottom: 0 }}>
             <div className="craft-card-header">
               <div>
                 <h3 className="craft-card-title">Artisan Seasonal Radar</h3>
-                <p style={{ margin: "4px 0 0", fontSize: "0.86rem", color: "#8E7564" }}>
+                <p style={{ margin: "4px 0 0", fontSize: "0.86rem", color: "#64748B" }}>
                   Pinterest users search 45 to 60 days before an event. Plan your pins according to this maker calendar.
                 </p>
               </div>
@@ -78,34 +109,34 @@ export default function TrendRadarPage() {
             {activeQuarterData && (
               <div
                 style={{
-                  background: "#FFFDF9",
-                  border: "1.5px solid #E7D7C1",
-                  borderRadius: 16,
-                  padding: "24px 26px",
+                  background: "#F8FAFC",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: 14,
+                  padding: "20px 24px",
                   display: "grid",
                   gridTemplateColumns: "1.3fr 1.7fr",
-                  gap: 28,
+                  gap: 24,
                 }}
               >
                 <div>
                   <span className="craft-pill craft-pill-queued" style={{ marginBottom: 8 }}>
                     {activeQuarterData.months}
                   </span>
-                  <h4 style={{ fontSize: "1.35rem", margin: "8px 0" }}>
+                  <h4 style={{ fontSize: "1.25rem", margin: "8px 0", color: "#0F172A" }}>
                     {activeQuarterData.season}
                   </h4>
-                  <p style={{ color: "#6A5343", fontSize: "0.92rem", lineHeight: 1.55, margin: "0 0 16px" }}>
+                  <p style={{ color: "#475569", fontSize: "0.9rem", lineHeight: 1.55, margin: "0 0 16px" }}>
                     {activeQuarterData.focus}
                   </p>
                   <div
                     style={{
-                      background: "#FAF4EB",
-                      border: "1px solid #E7D7C1",
+                      background: "#FFFFFF",
+                      border: "1px solid #E2E8F0",
                       borderRadius: 10,
                       padding: "10px 14px",
                       fontSize: "0.85rem",
-                      color: "#9D1C2F",
-                      fontWeight: 650,
+                      color: "#2563EB",
+                      fontWeight: 600,
                     }}
                   >
                     ⏰ Timing: {activeQuarterData.actionableWindow}
@@ -113,7 +144,7 @@ export default function TrendRadarPage() {
                 </div>
 
                 <div>
-                  <h5 style={{ margin: "0 0 10px", fontSize: "0.95rem", color: "#8E7564", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  <h5 style={{ margin: "0 0 10px", fontSize: "0.85rem", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                     Top Trending Searches for this window:
                   </h5>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -126,17 +157,17 @@ export default function TrendRadarPage() {
                           justifyContent: "space-between",
                           padding: "8px 14px",
                           background: "#FFFFFF",
-                          border: "1px solid #E7D7C1",
+                          border: "1px solid #E2E8F0",
                           borderRadius: 8,
-                          fontSize: "0.9rem",
+                          fontSize: "0.88rem",
                         }}
                       >
-                        <span style={{ fontWeight: 650, color: "#2D2118" }}>
+                        <span style={{ fontWeight: 600, color: "#0F172A" }}>
                           🔍 {s}
                         </span>
                         <Link
                           href={`/compose?title=${encodeURIComponent(s)}&tags=${encodeURIComponent(s.toLowerCase().replace(/\s+/g, ", "))}`}
-                          className="craft-btn-secondary craft-btn-sm"
+                          className="craft-btn-outline craft-btn-sm"
                           style={{ padding: "4px 10px", fontSize: "0.78rem" }}
                         >
                           Use Idea →
@@ -152,9 +183,14 @@ export default function TrendRadarPage() {
           {/* Rising Topics Leaderboard */}
           <div className="craft-card" style={{ marginBottom: 0 }}>
             <div className="craft-card-header">
-              <h3 className="craft-card-title">Rising Pinterest Maker Trends</h3>
+              <div>
+                <h3 className="craft-card-title">Real Rising Queries (Google Trends)</h3>
+                <p style={{ margin: "2px 0 0", fontSize: "0.82rem", color: "#64748B" }}>
+                  Verified rising relative interest from Google Trends. Never estimated search volume.
+                </p>
+              </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {["all", "Ceramics & Pottery", "Home & Living", "Gifting & Holidays", "Craft Techniques"].map((cat) => (
+                {["all", "Ceramics & Pottery", "Home & Living", "Gifting & Holidays"].map((cat) => (
                   <button
                     key={cat}
                     type="button"
@@ -168,53 +204,48 @@ export default function TrendRadarPage() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
               {filteredTrends.map((t) => (
                 <div
                   key={t.id}
                   style={{
                     background: "#FFFFFF",
-                    border: "1px solid #E7D7C1",
-                    borderRadius: 16,
-                    padding: "20px",
+                    border: "1px solid #E2E8F0",
+                    borderRadius: 14,
+                    padding: "18px",
                     display: "flex",
                     flexDirection: "column",
-                    boxShadow: "0 2px 8px rgba(78, 44, 22, 0.04)",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <span className="craft-pill craft-pill-neutral" style={{ fontSize: "0.75rem" }}>
+                    <span className="craft-pill craft-pill-neutral" style={{ fontSize: "0.72rem" }}>
                       {t.category}
                     </span>
                     <span
                       style={{
-                        background: "#EEF5F0",
-                        color: "#245735",
-                        border: "1px solid #C7E0CF",
-                        padding: "3px 10px",
-                        borderRadius: 9999,
-                        fontSize: "0.82rem",
-                        fontWeight: 800,
+                        background: "#EFF6FF",
+                        color: "#1D4ED8",
+                        border: "1px solid #BFDBFE",
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
                       }}
                     >
                       {t.growth}
                     </span>
                   </div>
 
-                  <h4 style={{ margin: "4px 0 8px", fontSize: "1.18rem", lineHeight: 1.3 }}>
+                  <h4 style={{ margin: "4px 0 8px", fontSize: "1.1rem", lineHeight: 1.3, color: "#0F172A" }}>
                     {t.topic}
                   </h4>
 
-                  <p style={{ fontSize: "0.86rem", color: "#6A5343", margin: "0 0 14px", lineHeight: 1.48, flex: 1 }}>
-                    {t.description}
-                  </p>
-
-                  <div style={{ fontSize: "0.8rem", color: "#8E7564", marginBottom: 8 }}>
-                    Peak Month: <strong>{t.peakMonth}</strong>
+                  <div style={{ fontSize: "0.78rem", color: "#64748B", marginBottom: 12 }}>
+                    Source: <strong style={{ color: "#2563EB" }}>{t.source}</strong>
                   </div>
 
                   {/* Recommended Hashtags */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 14, flex: 1 }}>
                     {t.recommendedTags.map((tag, idx) => (
                       <span key={idx} className="pin-tag-chip" style={{ fontSize: "0.72rem" }}>
                         #{tag}
@@ -222,13 +253,12 @@ export default function TrendRadarPage() {
                     ))}
                   </div>
 
-                  {/* Direct Composer Action */}
                   <Link
-                    href={`/compose?title=${encodeURIComponent(t.sampleTitle)}&tags=${encodeURIComponent(t.recommendedTags.join(", "))}`}
+                    href={`/compose?title=${encodeURIComponent(t.topic)}&tags=${encodeURIComponent(t.recommendedTags.join(", "))}`}
                     className="craft-btn-primary craft-btn-sm"
-                    style={{ textAlign: "center", width: "100%" }}
+                    style={{ width: "100%", textAlign: "center" }}
                   >
-                    + Create Pin with this Trend
+                    Create Pin for this Trend →
                   </Link>
                 </div>
               ))}
