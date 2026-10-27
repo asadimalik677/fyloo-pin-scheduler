@@ -3,7 +3,7 @@
 // the user's own key (sent with the request, never stored on the server)
 // or the shared server key in the GEMINI_API_KEY env var.
 
-const GEMINI_MODEL = "gemini-3.8-flash";
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export function resolveGeminiKey(userKey?: string | null): string {
