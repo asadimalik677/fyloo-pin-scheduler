@@ -16,7 +16,6 @@ export default function PublicFooter() {
             Official Pinterest API v5 Integration
           </div>
         </div>
-
         <div className="public-footer-links-grid">
           <div className="public-footer-col">
             <h4 className="public-footer-heading">Platform</h4>
@@ -25,7 +24,6 @@ export default function PublicFooter() {
             <Link href="/#demo-preview">Analytics Preview</Link>
             <Link href="/pricing">Pricing Plans</Link>
           </div>
-
           <div className="public-footer-col">
             <h4 className="public-footer-heading">Studio</h4>
             <Link href="/dashboard">Dashboard</Link>
@@ -34,7 +32,6 @@ export default function PublicFooter() {
             <Link href="/boards">Boards Manager</Link>
             <Link href="/queue">Calendar & Queue</Link>
           </div>
-
           <div className="public-footer-col">
             <h4 className="public-footer-heading">Intelligence</h4>
             <Link href="/keywords">Keyword Research</Link>
@@ -45,7 +42,6 @@ export default function PublicFooter() {
           </div>
         </div>
       </div>
-
       <div className="public-footer-bottom">
         <p>© {new Date().getFullYear()} Fyloo Pin Scheduler. Built for modern brands and creators. All rights reserved.</p>
         <div className="public-footer-bottom-links">
@@ -54,6 +50,8 @@ export default function PublicFooter() {
           <Link href="/api/publish-due">Cron Health</Link>
           <span>•</span>
           <Link href="/pricing">Pricing</Link>
+          <span>•</span>
+          <Link href="/privacy-policy">Privacy Policy</Link>
         </div>
       </div>
     </footer>
